@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>帧工坊 — 视频序列帧 · 背景抠图</title>
+<link rel="icon" type="image/png" href="avatar.png">
+<link rel="apple-touch-icon" href="avatar.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:#faf7f2;
+  color:#2a2420;
+  font-family:'DM Sans',system-ui,sans-serif;
+  line-height:1.7;
+  background-image:radial-gradient(ellipse 80% 60% at 50% -20%,rgba(217,119,6,0.05),transparent);
+  background-attachment:fixed;
+  min-height:100vh
+}
+.app{max-width:1100px;margin:0 auto;padding:32px 24px 60px}
+.hero{text-align:center;padding:24px 0 16px;margin-bottom:32px;position:relative}
+.hero::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:80px;height:2px;background:linear-gradient(90deg,transparent,#d97706,transparent);border-radius:1px}
+h1{font-family:'DM Serif Display',Georgia,serif;font-size:3rem;font-weight:400;color:#1a1614;letter-spacing:-0.02em;margin-bottom:4px}
+h1 em{color:#b45309;font-style:italic}
+.hero p{color:#8a7e76;font-size:.95rem;font-weight:400}
+.tabs{display:flex;gap:4px;justify-content:center;margin:20px 0 0;background:#fff;padding:4px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.04);width:fit-content;margin-left:auto;margin-right:auto}
+.tabs button{padding:8px 22px;border:none;border-radius:8px;background:transparent;color:#8a7e76;cursor:pointer;font-size:.85rem;font-weight:500;transition:all .2s;font-family:'DM Sans',sans-serif}
+.tabs button.active{background:#b45309;color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(180,83,9,0.2)}
+.tabs button:hover:not(.active){color:#2a2420;background:rgba(0,0,0,0.03)}
+.card{background:#fff;border:1px solid rgba(0,0,0,0.04);border-radius:16px;padding:28px 32px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.02),0 8px 24px -8px rgba(0,0,0,0.04);transition:box-shadow .2s}
+.card:hover{box-shadow:0 1px 4px rgba(0,0,0,0.02),0 12px 32px -8px rgba(0,0,0,0.06)}
+.card h3{font-family:'DM Serif Display',Georgia,serif;font-weight:400;font-size:1.2rem;margin-bottom:16px;display:flex;align-items:center;gap:10px;color:#1a1614}
+.card h3 .num{font-family:'DM Sans',sans-serif;background:rgba(180,83,9,0.08);color:#b45309;width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:600;letter-spacing:0}
+.card>p{color:#8a7e76;font-size:.85rem;margin-top:-8px;margin-bottom:16px}
+.step-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.step-grid.full{grid-template-columns:1fr}
+.upload-zone{border:2px dashed #e5ddd6;border-radius:14px;padding:48px 24px;text-align:center;cursor:pointer;background:#faf7f2;transition:all .3s;position:relative}
+.upload-zone:hover,.upload-zone.dragover{border-color:#b45309;background:rgba(217,119,6,0.03)}
+.upload-zone input{display:none}
+.upload-zone .icon{font-size:2.2rem;margin-bottom:10px;opacity:.6}
+.upload-zone strong{font-size:1.05rem;font-weight:600;color:#2a2420;display:block}
+.upload-zone small{display:block;color:#8a7e76;margin-top:4px;font-size:.82rem}
+.meta{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#faf7f2;border-radius:8px;font-size:.85rem}
+.meta span{color:#8a7e76}
+.meta strong{color:#2a2420;font-weight:600}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:#8a7e76;font-weight:500}
+label .meta{margin-top:2px}
+input,select{padding:9px 12px;background:#faf7f2;border:1px solid #e5ddd6;border-radius:8px;color:#2a2420;font-size:.88rem;font-family:'DM Sans',sans-serif;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus{outline:none;border-color:#b45309;box-shadow:0 0 0 3px rgba(180,83,9,0.08)}
+input[type=range]{padding:0;background:transparent;border:none;accent-color:#b45309;cursor:pointer}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+::placeholder{color:#b5aba3}
+.canvas-wrap{background:#faf7f2;border-radius:10px;overflow:hidden;border:1px solid rgba(0,0,0,0.04)}
+.canvas-wrap canvas{display:block;width:100%;background:#f5f0eb}
+.canvas-wrap.crop-canvas canvas{cursor:crosshair}
+.canvas-wrap .label{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#faf7f2;font-size:.78rem;color:#8a7e76;border-top:1px solid rgba(0,0,0,0.03)}
+button{padding:10px 22px;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+button:disabled{opacity:.4;cursor:default}
+.btn-primary{background:#b45309;color:#fff}
+.btn-primary:hover:not(:disabled){background:#924a07;transform:translateY(-1px);box-shadow:0 4px 12px rgba(180,83,9,0.25)}
+.btn-secondary{background:#faf7f2;color:#2a2420;border:1px solid #e5ddd6}
+.btn-secondary:hover:not(:disabled){background:#f5f0eb;border-color:#d5ccc4}
+.btn-ghost{background:transparent;color:#8a7e76;padding:6px 12px;font-weight:500}
+.btn-ghost:hover{color:#2a2420;background:rgba(0,0,0,0.03)}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.btn-group button{font-size:.8rem;padding:8px 16px}
+.hidden{display:none!important}
+.slider-row{display:flex;align-items:center;gap:10px;margin:6px 0}
+.slider-row label{flex-direction:row;align-items:center;gap:8px;margin:0;font-size:.82rem;color:#8a7e76;min-width:fit-content;font-weight:500}
+.slider-row input{flex:1}
+.slider-row span{min-width:34px;text-align:right;font-size:.82rem;color:#b45309;font-weight:600}
+.toggle-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.toggle{display:flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid #e5ddd6;border-radius:8px;cursor:pointer;font-size:.8rem;color:#8a7e76;user-select:none;transition:all .15s;background:#faf7f2}
+.toggle.on{border-color:#b45309;color:#2a2420;background:rgba(180,83,9,0.06);font-weight:500}
+.preview-wrap{background:repeating-conic-gradient(#e8e2da 0% 25%,#f0eae2 0% 50%) 0 0/20px 20px;border-radius:10px;overflow:auto;max-height:480px;display:flex;align-items:flex-start;justify-content:center;padding:12px}
+.preview-wrap img{max-width:100%;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.preview-wrap canvas{display:block;margin:auto}
+.preview-wrap.transparent{background:repeating-conic-gradient(#e8e2da 0% 25%,#f0eae2 0% 50%) 0 0/20px 20px}
+.preview-empty{padding:60px 20px;color:#b5aba3;font-size:.9rem}
+.segment{position:relative;padding:20px 0 12px}
+.segment-bar{position:relative;height:5px;background:#e5ddd6;border-radius:3px}
+.segment-bar div{position:absolute;height:100%;background:linear-gradient(90deg,#b45309,#d97706);border-radius:3px}
+.segment input[type=range]{position:absolute;width:100%;height:5px;-webkit-appearance:none;appearance:none;background:transparent;pointer-events:none}
+.segment input::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#b45309;border:3px solid #fff;cursor:pointer;pointer-events:all;box-shadow:0 1px 4px rgba(0,0,0,0.15)}
+.segment input::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#b45309;border:3px solid #fff;cursor:pointer;pointer-events:all;box-shadow:0 1px 4px rgba(0,0,0,0.15)}
+.segment-labels{display:flex;justify-content:space-between;font-size:.78rem;color:#8a7e76;margin-top:6px;font-weight:500}
+.toast{position:fixed;bottom:24px;right:24px;background:#fff;border:1px solid #e5ddd6;padding:14px 20px;border-radius:10px;font-size:.82rem;color:#2a2420;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,0.08);animation:slideUp .3s ease;max-width:380px}
+.toast.err{border-left:3px solid #dc2626}
+.toast.ok{border-left:3px solid #b45309}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.chroma-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.sample-badge{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#faf7f2;border-radius:8px;margin:12px 0}
+.sample-swatch{width:30px;height:30px;border-radius:6px;border:2px solid #e5ddd6;flex-shrink:0}
+.sample-badge span{font-size:.85rem;color:#2a2420;font-weight:500}
+.sample-badge small{color:#8a7e76;font-size:.78rem}
+@media(max-width:800px){.step-grid,.chroma-grid,.row{grid-template-columns:1fr}.app{padding:16px}.card{padding:20px}}
+</style>
+</head>
+<body>
+
+<div class="app">
+<div class="hero">
+  <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:4px">
+    <h1>帧 <em>工坊</em></h1>
+  </div>
+  <p>视频序列帧 · 背景抠像 · GIF/ZIP/Spine 导出</p>
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap">
+    <a href="https://space.bilibili.com/77012518?spm_id_from=333.1007.0.0" target="_blank" rel="noreferrer" style="display:inline-flex;align-items:center;gap:6px;padding:7px 18px;background:#fff;border:1px solid #e5ddd6;border-radius:10px;text-decoration:none;color:#2a2420;font-size:.82rem;font-weight:500;transition:all .15s" onmouseover="this.style.borderColor='#b45309';this.style.boxShadow='0 2px 8px rgba(180,83,9,0.1)'" onmouseout="this.style.borderColor='#e5ddd6';this.style.boxShadow='none'">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="7" width="15" height="10.5" rx="2.8"/><path d="M8.4 4.5 6.8 6.7M15.6 4.5l1.6 2.2"/><path d="M9.2 11.1v2.2M14.8 11.1v2.2"/><path d="M8.5 15.3c1.1.7 2.2 1 3.5 1 1.3 0 2.4-.3 3.5-1"/></svg>
+      哔哩哔哩
+    </a>
+    <a href="https://www.douyin.com/user/self?from_tab_name=main" target="_blank" rel="noreferrer" style="display:inline-flex;align-items:center;gap:6px;padding:7px 18px;background:#fff;border:1px solid #e5ddd6;border-radius:10px;text-decoration:none;color:#2a2420;font-size:.82rem;font-weight:500;transition:all .15s" onmouseover="this.style.borderColor='#b45309';this.style.boxShadow='0 2px 8px rgba(180,83,9,0.1)'" onmouseout="this.style.borderColor='#e5ddd6';this.style.boxShadow='none'">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#b45309"><path d="M13.2 4.5c1.2 1.8 2.6 3 4.6 3.6v2.6c-1.5-.1-2.9-.6-4-1.4v5.5a4.7 4.7 0 1 1-4.7-4.6c.4 0 .8 0 1.2.1v2.8a2 2 0 1 0 .8 1.7V4.5h2.1Z"/><path d="M11.7 4.5v10.3a2 2 0 1 1-2-2c.2 0 .5 0 .7.1v-2.8a4.8 4.8 0 1 0 4.1 4.7V9.3c1.1.8 2.5 1.3 4 1.4V8.1c-2-.6-3.4-1.8-4.6-3.6h-2.2Z" fill="#25F4EE" opacity="0.9"/><path d="M12.5 4.1c1.2 1.8 2.6 3 4.6 3.6v2.6c-1.5-.1-2.9-.6-4-1.4v5.5a4.7 4.7 0 1 1-4.7-4.6c.4 0 .8 0 1.2.1v2.8a2 2 0 1 0 .8 1.7V4.1h2.1Z" fill="#FE2C55" opacity="0.88"/></svg>
+      抖音
+    </a>
+  </div>
+  <p style="color:#8a7e76;font-size:.82rem;margin-top:10px;font-weight:400">这个工具永久免费，关注我，一起看看 AI 能把游戏开发做到什么程度</p>
+  <div class="tabs">
+    <button class="active" onclick="switchMode('sheet')" id="tabSheetBtn">序列帧工具</button>
+    <button onclick="switchMode('cutout')" id="tabCutBtn">背景抠图</button>
+  </div>
+</div>
+
+<!-- SHEET MODE -->
+<div id="sheetMode">
+<div class="card">
+  <h3><span class="num">1</span> 上传视频</h3>
+  <div class="upload-zone" id="dropZone">
+    <input type="file" id="fileInput" accept="video/*,image/*">
+    <div class="icon" id="zoneIcon">🎬</div>
+    <strong id="zoneTitle">拖放视频或图片到这里</strong>
+    <small id="zoneDesc">纯前端处理，推荐单色背景视频</small>
+  </div>
+  <div id="previewInfo" class="hidden" style="margin-top:16px">
+    <div class="row">
+      <div class="meta"><span>文件名</span><strong id="fileName">—</strong></div>
+      <div class="meta"><span>分辨率</span><strong id="fileRes">—</strong></div>
+    </div>
+    <div style="margin-top:8px"><video id="previewVideo" controls muted playsinline style="max-width:100%;border-radius:8px;background:#000;max-height:200px"></video></div>
+  </div>
+</div>
+
+<div id="cropSection" class="card hidden">
+  <h3><span class="num">2</span> 画面裁剪</h3>
+  <div class="step-grid full">
+    <div><div class="canvas-wrap crop-canvas"><canvas id="cropCanvas"></canvas><div class="label"><span>鼠标左键拖拽框选裁剪</span><span id="cropSize">—</span></div></div></div>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <label>左侧 (%)<input type="number" id="cropL" min="0" max="99" value="0"></label>
+    <label>顶部 (%)<input type="number" id="cropT" min="0" max="99" value="0"></label>
+    <label>宽度 (%)<input type="number" id="cropW" min="1" max="100" value="100"></label>
+    <label>高度 (%)<input type="number" id="cropH" min="1" max="100" value="100"></label>
+  </div>
+  <button class="btn-ghost" onclick="resetCrop()">重置</button>
+</div>
+
+<div id="extractSection" class="card hidden">
+  <h3><span class="num">3</span> 提取帧</h3>
+  <div class="step-grid">
+    <div>
+      <div class="row">
+        <label>FPS <input type="number" id="fpsInput" min="1" max="30" value="10"></label>
+        <label>预计帧数 <div class="meta" style="margin-top:4px"><strong id="frameCount">0</strong></div></label>
+      </div>
+      <div class="segment">
+        <div class="segment-bar"><div id="segBar" style="left:0%;width:100%"></div></div>
+        <input type="range" id="segStart" min="0" max="100" step="0.01" value="0">
+        <input type="range" id="segEnd" min="0" max="100" step="0.01" value="100">
+      <div class="segment-labels">
+          <span id="segStartLabel">00:00.000</span>
+          <span id="segEndLabel">00:00.000</span>
+        </div>
+      </div>
+      <button class="btn-primary" style="width:100%;margin-top:8px" onclick="extractFrames()" id="extractBtn">提取帧</button>
+      <p id="extractWarn" class="hidden" style="color:#ef4444;font-size:.85rem;margin-top:6px"></p>
+    </div>
+    <div>
+      <div class="canvas-wrap"><canvas id="refCanvas"></canvas><div class="label"><span>参考帧</span><span id="refTime">—</span></div></div>
+      <div class="slider-row"><input type="range" id="refSlider" min="0" max="100" step="0.1"><span id="refVal">0</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="chromaSection" class="card hidden">
+  <h3><span class="num">4</span> 背景抠像</h3>
+  <div class="chroma-grid">
+    <div><div class="canvas-wrap"><canvas id="chromaSrc"></canvas><div class="label"><span>点击取色</span></div></div></div>
+    <div><div class="canvas-wrap"><canvas id="chromaDst"></canvas><div class="label"><span id="chromaViewLabel">结果</span>
+      <span style="display:flex;gap:2px">
+        <button class="btn-ghost" style="font-size:.75rem;padding:2px 8px" onclick="setChromaView('result')">结果</button>
+        <button class="btn-ghost" style="font-size:.75rem;padding:2px 8px" onclick="setChromaView('mask')">蒙版</button>
+        <button class="btn-ghost" style="font-size:.75rem;padding:2px 8px" onclick="setChromaView('solid')">纯色底</button>
+      </span>
+    </div></div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin:12px 0;padding:10px 14px;background:#faf7f2;border-radius:8px">
+    <div id="chromaSwatch" style="width:30px;height:30px;border-radius:6px;border:2px solid #e5ddd6;background:#ddd5cc;flex-shrink:0"></div>
+    <span style="font-size:.85rem;font-weight:500" id="chromaLabel">未取色 → 点击左侧预览图背景区域</span>
+    <button class="btn-ghost" style="margin-left:auto" onclick="clearChroma()">清除</button>
+  </div>
+  <div class="row">
+    <div class="slider-row"><label>容差</label><input type="range" id="chromaTol" min="0" max="120" value="28"><span id="chromaTolVal">28</span></div>
+    <div class="slider-row"><label>羽化</label><input type="range" id="chromaSoft" min="0" max="60" value="14"><span id="chromaSoftVal">14</span></div>
+  </div>
+  <div class="toggle-row" style="margin-top:8px">
+    <label class="toggle on" id="smoothToggle">边缘平滑<input type="checkbox" hidden checked onchange="toggleSmooth()"></label>
+    <label class="toggle on" id="despillToggle">去溢色<input type="checkbox" hidden checked onchange="toggleDespill()"></label>
+  </div>
+  <button class="btn-primary" style="width:100%;margin-top:12px" onclick="generateSheet()">生成序列图</button>
+</div>
+
+<div id="resultSection" class="card hidden">
+  <h3><span class="num">5</span> 序列图</h3>
+  <div style="display:flex;gap:4px;background:#faf7f2;padding:3px;border-radius:8px;width:fit-content;margin-bottom:14px;border:1px solid rgba(0,0,0,0.03)">
+    <button class="btn-ghost active" style="background:#fff;color:#2a2420;box-shadow:0 1px 2px rgba(0,0,0,0.04)" onclick="showResultTab('sheet')">序列图</button>
+    <button class="btn-ghost" onclick="showResultTab('anim')">动画预览</button>
+  </div>
+  <div id="sheetTab"><div class="preview-wrap"><img id="resultImg" src="" style="display:none"><div class="preview-empty" id="resultEmpty">生成后显示序列图</div></div></div>
+  <div id="animTab" class="hidden"><div class="preview-wrap transparent" style="min-height:200px;align-items:center;justify-content:center"><canvas id="animCanvas"></canvas></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:8px">
+      <button class="btn-ghost" onclick="animPlay()">▶ 播放</button>
+      <button class="btn-ghost" onclick="animReset()">⟳ 重播</button>
+      <span style="font-size:.85rem;color:#6b6b78" id="animLabel">0/0</span>
+    </div>
+  </div>
+</div>
+
+<div id="exportSection" class="card hidden">
+  <h3><span class="num">6</span> 导出</h3>
+  <div class="row">
+    <label>列数<input type="number" id="expCols" min="1" max="10" value="4"></label>
+    <label>间距<input type="number" id="expGap" min="0" max="48" value="2"></label>
+    <label>帧尺寸<select id="expSize"><option value="0">原始</option><option value="32">32×32</option><option value="64">64×64</option><option value="128">128×128</option></select></label>
+    <label>导出尺寸<div class="meta" style="margin-top:4px"><strong id="expSizeLabel">—</strong></div></label>
+  </div>
+  <div class="btn-group">
+    <button class="btn-secondary" onclick="exportPNG()">PNG 序列图</button>
+    <button class="btn-secondary" onclick="exportGIF()">动画 GIF</button>
+    <button class="btn-secondary" onclick="exportZIP()">透明帧 ZIP</button>
+    <button class="btn-primary" onclick="openSpine()">Spine</button>
+  </div>
+</div>
+
+<div id="spineSection" class="card hidden">
+  <h3><span class="num">7</span> Spine 工作区</h3>
+  <div class="step-grid">
+    <div><div class="preview-wrap transparent" style="min-height:200px;align-items:center;justify-content:center"><canvas id="spineCanvas"></canvas></div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:8px">
+        <button class="btn-ghost" onclick="spinePlay()">▶ 播放</button>
+        <button class="btn-ghost" onclick="spineReset()">⟳ 重播</button>
+        <span style="font-size:.85rem;color:#6b6b78" id="spineLabel">0/0</span>
+      </div>
+    </div>
+    <div><div class="row">
+      <label>骨骼<input type="text" id="spineSk" value="skeleton"></label>
+      <label>动画<input type="text" id="spineAn" value="idle"></label>
+      <label>插槽<input type="text" id="spineSl" value="sprite"></label>
+      <label>FPS<input type="number" id="spineFps" min="1" max="60" value="10"></label>
+    </div>
+    <label class="toggle on" style="margin-top:8px" onclick="toggleSpineLoop()">循环<input type="checkbox" checked hidden></label>
+    <button class="btn-primary" style="width:100%;margin-top:12px" onclick="exportSpine()">下载 Spine ZIP</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- CUTOUT MODE -->
+<div id="cutoutMode" class="hidden">
+<div class="card">
+  <h3><span class="num">1</span> 上传图片</h3>
+  <div class="upload-zone" id="imgZone">
+    <input type="file" id="imgInput" accept="image/*">
+    <div class="icon">🖼</div>
+    <strong>拖放图片到这里</strong>
+    <small>点击背景取色生成透明 PNG</small>
+  </div>
+</div>
+<div id="cutEditor" class="card hidden">
+  <h3><span class="num">2</span> 抠图</h3>
+  <div class="chroma-grid">
+    <div><div class="canvas-wrap"><canvas id="cutSrc"></canvas><div class="label">点击取色</div></div></div>
+    <div><div class="canvas-wrap"><canvas id="cutDst"></canvas><div class="label"><span id="cutViewLabel">结果</span>
+      <span style="display:flex;gap:2px">
+        <button class="btn-ghost" style="font-size:.75rem;padding:2px 8px" onclick="setCutView('result')">结果</button>
+        <button class="btn-ghost" style="font-size:.75rem;padding:2px 8px" onclick="setCutView('mask')">蒙版</button>
+        <button class="btn-ghost" style="font-size:.75rem;padding:2px 8px" onclick="setCutView('solid')">纯色底</button>
+      </span>
+    </div></div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin:12px 0;padding:10px 14px;background:#faf7f2;border-radius:8px">
+    <div id="cutSwatch" style="width:30px;height:30px;border-radius:6px;background:#ddd5cc;flex-shrink:0"></div>
+    <span style="font-size:.85rem;font-weight:500" id="cutLabel">未取色</span>
+  </div>
+  <div class="row">
+    <div class="slider-row"><label>容差</label><input type="range" id="cutTol" min="0" max="120" value="28"><span id="cutTolV">28</span></div>
+    <div class="slider-row"><label>羽化</label><input type="range" id="cutSoft" min="0" max="60" value="14"><span id="cutSoftV">14</span></div>
+  </div>
+  <div class="toggle-row" style="margin-top:8px">
+    <label class="toggle on">平滑<input type="checkbox" hidden checked onchange="cutToggleSmooth()"></label>
+    <label class="toggle on">去溢色<input type="checkbox" hidden checked onchange="cutToggleDespill()"></label>
+  </div>
+  <button class="btn-primary" style="width:100%;margin-top:12px" onclick="generateCutout()">生成透明 PNG</button>
+</div>
+<div id="cutResult" class="card hidden">
+  <h3><span class="num">3</span> 导出</h3>
+  <div class="step-grid">
+    <div class="preview-wrap"><img id="cutPreview" src="" style="display:none"></div>
+    <div><button class="btn-primary" style="width:100%" onclick="downloadCutout()">下载 PNG</button></div>
+  </div>
+</div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ── Core helpers ──
+const $ = id => document.getElementById(id);
+function toast(m, t) { const e = document.createElement('div'); e.className = 'toast' + (t === 'error' ? ' err' : t === 'ok' ? ' ok' : ''); e.textContent = m; document.body.appendChild(e); setTimeout(() => e.remove(), 3500); }
+function fmt(s) { if (!Number.isFinite(s)) return '00:00.000'; const m = Math.floor(s / 60), sec = Math.floor(s % 60), ms = Math.floor((s % 1) * 1000); return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${String(ms).padStart(3,'0')}`; }
+function cv(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+function cx(c) { return c.getContext('2d'); }
+function id(c) { return cx(c).getImageData(0, 0, c.width, c.height); }
+function tb(c) { return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(Error('blob')))); }
+function dl(b, n) { const u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = n; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(() => URL.revokeObjectURL(u), 5000); }
+function hex(r, g, b) { return '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join(''); }
+
+// ── State ──
+const S = {
+  mode: 'sheet',
+  vidUrl: null, vidFile: null, dur: 0, vw: 0, vh: 0,
+  fps: 10, segS: 0, segE: 0,
+  crop: { l: 0, t: 0, w: 100, h: 100 },
+  rawRf: null, rf: null,
+  cs: null, ct: 28, csf: 14, csm: true, cd: true, cv: 'result',
+  frames: [], pf: [],
+  ec: 4, eg: 2, es: 0,
+  imgCv: null, imgUrl: null, cutUrl: null,
+  ig: false, sl: true, _loading: false
+};
+
+// ── Persistent video element ──
+const V = document.createElement('video');
+V.muted = true; V.playsInline = true; V.preload = 'auto';
+V.style.cssText = 'position:fixed;left:-9999px;width:640px;height:360px';
+document.body.appendChild(V);
+
+// ── Mode switch ──
+function switchMode(m) {
+  S.mode = m;
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+  $(m === 'sheet' ? 'tabSheetBtn' : 'tabCutBtn').classList.add('active');
+  $('sheetMode').classList.toggle('hidden', m !== 'sheet');
+  $('cutoutMode').classList.toggle('hidden', m !== 'cutout');
+  if (m === 'cutout') { $('zoneIcon').textContent = '🖼'; $('zoneTitle').textContent = '拖放图片到这里'; $('zoneDesc').textContent = 'PNG/JPG/WebP'; }
+  else { $('zoneIcon').textContent = '🎬'; $('zoneTitle').textContent = '拖放视频到这里'; $('zoneDesc').textContent = '纯前端处理'; }
+}
+
+// ── Upload (shared) ──
+const drop = $('dropZone'), fi = $('fileInput');
+drop.onclick = () => fi.click();
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('dragover'); };
+drop.ondragleave = () => drop.classList.remove('dragover');
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove('dragover'); if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); };
+fi.onchange = e => { if (e.target.files.length) handleFile(e.target.files[0]); };
+
+async function handleFile(f) {
+  if (S.mode === 'cutout' || f.type.startsWith('image/')) { if (f.type.startsWith('image/')) loadImage(f); else toast('不支持', 'error'); return; }
+  loadVideo(f);
+}
+
+// ── Video loading ──
+async function loadVideo(file) {
+  if (S._loading) return;
+  S._loading = true;
+  const url = URL.createObjectURL(file);
+  toast('加载视频...');
+  try {
+    // Reset video element fully
+    V.removeAttribute('src');
+    V.load();
+    await new Promise(r => setTimeout(r, 50));
+
+    V.src = url;
+    V.load();
+
+    await new Promise((res, rej) => {
+      let done = false;
+      const to = setTimeout(() => { if (!done) { done = true; rej(new Error('超时')); } }, 30000);
+      V.onloadedmetadata = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(to);
+        V.onerror = null;
+        // Also wait for enough data
+        if (V.readyState >= 2) res();
+        else {
+          V.oncanplay = () => { V.oncanplay = null; res(); };
+        }
+      };
+      V.onerror = () => { if (!done) { done = true; clearTimeout(to); rej(new Error('解码失败')); } };
+    });
+
+    // Small extra wait for dimensions to stabilize
+    await new Promise(r => setTimeout(r, 100));
+
+    if (!V.videoWidth || !V.videoHeight) throw new Error('无效视频尺寸');
+
+    S.vidUrl = url;
+    S.vidFile = file;
+    S.dur = V.duration;
+    S.vw = V.videoWidth;
+    S.vh = V.videoHeight;
+    S.segS = 0;
+    S.segE = V.duration;
+
+    $('fileName').textContent = file.name;
+    $('fileRes').textContent = `${V.videoWidth} × ${V.videoHeight}`;
+    $('previewVideo').src = url;
+    $('previewInfo').classList.remove('hidden');
+
+    $('segStart').max = V.duration;
+    $('segEnd').max = V.duration;
+    $('segEnd').value = V.duration;
+    $('segStart').value = 0;
+    $('refSlider').max = V.duration;
+    $('refSlider').value = 0;
+
+    $('cropSection').classList.remove('hidden');
+    $('extractSection').classList.remove('hidden');
+    $('chromaSection').classList.remove('hidden');
+
+    updateSegUI();
+    $('cropSize').textContent = `${V.videoWidth} × ${V.videoHeight}`;
+    await updateRefFrame();
+    toast('视频加载成功', 'ok');
+  } catch (e) {
+    toast('视频加载失败: ' + e.message, 'error');
+    URL.revokeObjectURL(url);
+    V.removeAttribute('src');
+    V.load();
+  }
+  S._loading = false;
+}
+
+// ── Seek helper ──
+async function seekTo(time) {
+  const t = Math.max(0, Math.min(time, V.duration || 0));
+  V.currentTime = t;
+  await new Promise(res => {
+    if (!V.seeking) { res(); return; }
+    const to = setTimeout(res, 1000);
+    V.onseeked = () => { clearTimeout(to); V.onseeked = null; res(); };
+  });
+  await new Promise(r => setTimeout(r, 50));
+}
+
+function grabFrame() {
+  const c = cv(V.videoWidth, V.videoHeight);
+  cx(c).drawImage(V, 0, 0);
+  return c;
+}
+
+// ── Crop ──
+function cropR(src) {
+  const w = src.width, h = src.height, c = S.crop;
+  return { x: Math.round(w * c.l / 100), y: Math.round(h * c.t / 100), w: Math.max(1, Math.round(w * c.w / 100)), h: Math.max(1, Math.round(h * c.h / 100)) };
+}
+function cropImg(src) {
+  const r = cropR(src);
+  const c = cv(r.w, r.h);
+  cx(c).drawImage(src, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+  return c;
+}
+
+function drawCrop(c, src) {
+  c.width = src.width;
+  c.height = src.height;
+  const g = cx(c);
+  g.drawImage(src, 0, 0);
+  const r = cropR(src);
+  g.fillStyle = 'rgba(0,0,0,0.35)';
+  g.fillRect(0, 0, c.width, r.y);
+  g.fillRect(0, r.y, r.x, r.height);
+  g.fillRect(r.x + r.w, r.y, c.width - r.x - r.w, r.height);
+  g.fillRect(0, r.y + r.h, c.width, c.height - r.y - r.h);
+  g.strokeStyle = '#f59e0b';
+  g.lineWidth = 2;
+  g.strokeRect(r.x, r.y, r.w, r.h);
+  g.setLineDash([6, 6]);
+  g.strokeStyle = 'rgba(255,255,255,0.2)';
+  g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(r.x + r.w / 3, r.y); g.lineTo(r.x + r.w / 3, r.y + r.h);
+  g.moveTo(r.x + r.w * 2 / 3, r.y); g.lineTo(r.x + r.w * 2 / 3, r.y + r.h);
+  g.moveTo(r.x, r.y + r.h / 3); g.lineTo(r.x + r.w, r.y + r.h / 3);
+  g.moveTo(r.x, r.y + r.h * 2 / 3); g.lineTo(r.x + r.w, r.y + r.h * 2 / 3);
+  g.stroke();
+  g.setLineDash([]);
+}
+
+// ── Mouse drag crop ──
+let _cropDrag = null;
+$('cropCanvas').onpointerdown = function(e) {
+  if (!S.rawRf) return;
+  const r = this.getBoundingClientRect();
+  const x = (e.clientX - r.left) * (S.rawRf.width / r.width);
+  const y = (e.clientY - r.top) * (S.rawRf.height / r.height);
+  _cropDrag = { sx: x, sy: y, ex: x, ey: y };
+  this.setPointerCapture(e.pointerId);
+};
+$('cropCanvas').onpointermove = function(e) {
+  if (!_cropDrag) return;
+  const r = this.getBoundingClientRect();
+  _cropDrag.ex = (e.clientX - r.left) * (S.rawRf.width / r.width);
+  _cropDrag.ey = (e.clientY - r.top) * (S.rawRf.height / r.height);
+  const x = Math.min(_cropDrag.sx, _cropDrag.ex);
+  const y = Math.min(_cropDrag.sy, _cropDrag.ey);
+  const w = Math.max(1, Math.abs(_cropDrag.ex - _cropDrag.sx));
+  const h = Math.max(1, Math.abs(_cropDrag.ey - _cropDrag.sy));
+  const pw = S.rawRf.width, ph = S.rawRf.height;
+  S.crop.l = Math.round(x / pw * 100);
+  S.crop.t = Math.round(y / ph * 100);
+  S.crop.w = Math.round(w / pw * 100);
+  S.crop.h = Math.round(h / ph * 100);
+  $('cropL').value = S.crop.l;
+  $('cropT').value = S.crop.t;
+  $('cropW').value = Math.max(1, S.crop.w);
+  $('cropH').value = Math.max(1, S.crop.h);
+  drawCrop($('cropCanvas'), S.rawRf);
+  const rr = cropR(S.rawRf);
+  $('cropSize').textContent = `${rr.w} × ${rr.h}`;
+};
+$('cropCanvas').onpointerup = function(e) {
+  if (!_cropDrag) return;
+  _cropDrag = null;
+  updateRefFrame();
+};
+$('cropCanvas').onpointercancel = function() { _cropDrag = null; };
+
+// ── Update functions ──
+function updateSegUI() {
+  const d = S.dur || 1;
+  const s = parseFloat($('segStart').value) || 0;
+  const e = parseFloat($('segEnd').value) || d;
+  S.segS = s; S.segE = e;
+  $('segStartLabel').textContent = fmt(s);
+  $('segEndLabel').textContent = fmt(e);
+  const ps = (s / d) * 100, pe = (e / d) * 100;
+  $('segBar').style.left = ps + '%';
+  $('segBar').style.width = (pe - ps) + '%';
+  updateFrameCount();
+}
+$('segStart').oninput = function() {
+  let v = parseFloat(this.value);
+  if (v >= parseFloat($('segEnd').value)) { v = Math.max(0, parseFloat($('segEnd').value) - 0.01); this.value = v; }
+  updateSegUI();
+  updateRefFrame();
+};
+$('segEnd').oninput = function() {
+  let v = parseFloat(this.value);
+  if (v <= parseFloat($('segStart').value)) { v = parseFloat($('segStart').value) + 0.01; this.value = v; }
+  updateSegUI();
+  updateRefFrame();
+};
+
+['cropL', 'cropT', 'cropW', 'cropH'].forEach(id => {
+  $(id).oninput = function() {
+    const v = parseFloat(this.value) || 0;
+    const map = { cropL: 'l', cropT: 't', cropW: 'w', cropH: 'h' };
+    S.crop[map[id]] = id === 'cropL' || id === 'cropT' ? Math.min(v, 99) : Math.max(1, Math.min(v, 100 - (id === 'cropW' ? S.crop.l : S.crop.t)));
+    updateCropView();
+    updateRefFrame();
+  };
+});
+function resetCrop() {
+  S.crop = { l: 0, t: 0, w: 100, h: 100 };
+  $('cropL').value = '0'; $('cropT').value = '0'; $('cropW').value = '100'; $('cropH').value = '100';
+  updateCropView(); updateRefFrame();
+}
+function updateCropView() {
+  const c = $('cropCanvas');
+  if (S.rawRf) drawCrop(c, S.rawRf);
+  const r = cropR(S.rawRf || cv(640, 480));
+  $('cropSize').textContent = `${r.w} × ${r.h}`;
+}
+
+// ── Reference frame ──
+async function updateRefFrame() {
+  if (!S.vidUrl) return;
+  const t = parseFloat($('refSlider').value) || 0;
+  try {
+    await seekTo(t);
+    const c = grabFrame();
+    S.rawRf = c;
+    S.rf = cropImg(c);
+    const rc = $('refCanvas');
+    rc.width = S.rf.width; rc.height = S.rf.height;
+    cx(rc).drawImage(S.rf, 0, 0);
+    $('refTime').textContent = fmt(t);
+    $('refVal').textContent = t.toFixed(1);
+    updateCropView();
+    syncChromaSrc();
+  } catch (e) { console.warn('ref error:', e); }
+}
+$('refSlider').oninput = updateRefFrame;
+
+$('fpsInput').oninput = function() { S.fps = Math.max(1, Math.min(30, parseInt(this.value) || 1)); updateFrameCount(); };
+function updateFrameCount() {
+  const cnt = Math.floor((S.segE - S.segS) * S.fps) + 1;
+  $('frameCount').textContent = cnt;
+  if (cnt > 500) { $('extractWarn').textContent = `⚠ 预计 ${cnt} 帧，请缩短片段或降低 FPS`; $('extractWarn').classList.remove('hidden'); }
+  else $('extractWarn').classList.add('hidden');
+}
+
+// ── Extract frames ──
+async function extractFrames() {
+  if (!S.vidUrl) { toast('请先上传视频', 'error'); return; }
+  if (S.ig) return;
+  S.ig = true;
+  $('extractBtn').disabled = true;
+  toast('提取帧中...');
+  try {
+    const fps = S.fps, s = S.segS, e = S.segE;
+    const step = Math.max(0.05, 1 / fps);
+    const cnt = Math.floor((e - s) / step) + 1;
+    if (cnt > 500) { toast(`帧数过多(${cnt})，请缩短`, 'error'); S.ig = false; $('extractBtn').disabled = false; return; }
+    const times = [];
+    for (let i = 0; i < cnt; i++) { const t = s + i * step; if (t > e + 0.001) break; times.push(Number(Math.min(t, e).toFixed(3))); }
+    const frames = [];
+    for (let i = 0; i < times.length; i++) {
+      await seekTo(times[i]);
+      frames.push({ canvas: cropImg(grabFrame()), time: times[i] });
+    }
+    S.frames = frames;
+    if (frames.length) {
+      S.rf = frames[0].canvas;
+      const rc = $('refCanvas');
+      rc.width = S.rf.width; rc.height = S.rf.height;
+      cx(rc).drawImage(S.rf, 0, 0);
+      syncChromaSrc();
+    }
+    toast(`已提取 ${frames.length} 帧`, 'ok');
+  } catch (e) { toast('提取失败: ' + e.message, 'error'); }
+  S.ig = false;
+  $('extractBtn').disabled = false;
+}
+
+// ── Chroma key ──
+function colorDist(a, b) { const dr = a.r - b.r, dg = a.g - b.g, db = a.b - b.b; return Math.sqrt(dr * dr + dg * dg + db * db) / Math.sqrt(3); }
+function edgeFn(d, t, s) { if (d <= t) return 0; if (d >= t + s) return 1; const x = (d - t) / s; return x * x * (3 - 2 * x); }
+
+function chromaKey(src, cs, tol, soft, despill, ds) {
+  const w = src.width, h = src.height;
+  const r = cv(w, h), m = cv(w, h);
+  const rc = cx(r), mc = cx(m);
+  const sd = id(src);
+  const rd = rc.createImageData(w, h), md = mc.createImageData(w, h);
+  const d = rd.data, s = sd.data, md2 = md.data;
+  for (let i = 0; i < s.length; i += 4) {
+    const px = { r: s[i], g: s[i + 1], b: s[i + 2] };
+    let a = Math.round(edgeFn(colorDist(px, cs), tol, soft) * 255);
+    a = Math.max(0, Math.min(255, a));
+    let o = px;
+    if (despill && ds > 0 && a > 0) {
+      const f = Math.max(0, Math.min(1, 1 - a / 255));
+      const dom = o.g >= o.r && o.g >= o.b ? 'g' : o.r >= o.g && o.r >= o.b ? 'r' : 'b';
+      const maxO = dom === 'g' ? Math.max(o.r, o.b) : dom === 'r' ? Math.max(o.g, o.b) : Math.max(o.r, o.g);
+      o = { ...o };
+      o[dom] = Math.max(0, Math.min(255, Math.round(o[dom] - (o[dom] - maxO) * ds * 0.5 * f)));
+    }
+    d[i] = o.r; d[i + 1] = o.g; d[i + 2] = o.b; d[i + 3] = a;
+    md2[i] = md2[i + 1] = md2[i + 2] = a; md2[i + 3] = 255;
+  }
+  rc.putImageData(rd, 0, 0);
+  mc.putImageData(md, 0, 0);
+  return { result: r, mask: m };
+}
+
+function syncChromaSrc() {
+  if (!S.rf) return;
+  const c = $('chromaSrc');
+  c.width = S.rf.width; c.height = S.rf.height;
+  cx(c).drawImage(S.rf, 0, 0);
+}
+$('chromaSrc').onclick = function(e) {
+  const r = this.getBoundingClientRect();
+  const x = Math.round((e.clientX - r.left) * (this.width / r.width));
+  const y = Math.round((e.clientY - r.top) * (this.height / r.height));
+  const d = cx(this).getImageData(x, y, 1, 1).data;
+  S.cs = { r: d[0], g: d[1], b: d[2] };
+  $('chromaSwatch').style.background = hex(d[0], d[1], d[2]);
+  $('chromaLabel').textContent = `RGB(${d[0]}, ${d[1]}, ${d[2]})`;
+  applyChroma();
+};
+function clearChroma() { S.cs = null; $('chromaSwatch').style.background = '#3a3a44'; $('chromaLabel').textContent = '未取色'; applyChroma(); }
+$('chromaTol').oninput = function() { S.ct = parseInt(this.value); $('chromaTolVal').textContent = S.ct; applyChroma(); };
+$('chromaSoft').oninput = function() { S.csf = parseInt(this.value); $('chromaSoftVal').textContent = S.csf; applyChroma(); };
+function toggleSmooth() { S.csm = !S.csm; $('smoothToggle').classList.toggle('on'); applyChroma(); }
+function toggleDespill() { S.cd = !S.cd; $('despillToggle').classList.toggle('on'); applyChroma(); }
+function setChromaView(v) { S.cv = v; applyChroma(); }
+
+function applyChroma() {
+  const src = S.rf, dst = $('chromaDst');
+  if (!src) return;
+  if (!S.cs) { dst.width = src.width; dst.height = src.height; cx(dst).drawImage(src, 0, 0); return; }
+  const { result, mask } = chromaKey(src, S.cs, S.ct, S.csf, S.cd, 50);
+  if (S.cv === 'mask') { dst.width = mask.width; dst.height = mask.height; cx(dst).drawImage(mask, 0, 0); }
+  else if (S.cv === 'solid') {
+    const bg = cv(result.width, result.height);
+    const bc = cx(bg);
+    bc.fillStyle = '#1a1a1e';
+    bc.fillRect(0, 0, bg.width, bg.height);
+    bc.drawImage(result, 0, 0);
+    dst.width = bg.width; dst.height = bg.height;
+    cx(dst).drawImage(bg, 0, 0);
+  } else {
+    dst.width = result.width; dst.height = result.height;
+    cx(dst).drawImage(result, 0, 0);
+  }
+}
+
+// ── Generate spritesheet ──
+async function generateSheet() {
+  if (!S.frames.length) { toast('请先提取帧', 'error'); return; }
+  if (S.ig) return;
+  S.ig = true;
+  toast('生成序列图...');
+  try {
+    let frames = S.frames, trans = false;
+    if (S.cs) {
+      S.pf = [];
+      for (let i = 0; i < frames.length; i++) {
+        const r = chromaKey(frames[i].canvas, S.cs, S.ct, S.csf, S.cd, 50);
+        S.pf.push({ canvas: r.result, time: frames[i].time });
+      }
+      trans = true;
+    } else S.pf = [];
+
+    const sf = trans ? S.pf : frames;
+    const cols = S.ec, gap = S.eg, fs = S.es;
+    const cnt = sf.length, rows = Math.ceil(cnt / cols);
+    let fw = sf[0].canvas.width, fh = sf[0].canvas.height;
+    if (fs > 0) { fw = fs; fh = fs; }
+    const cw = cols * fw + Math.max(cols - 1, 0) * gap;
+    const ch = rows * fh + Math.max(rows - 1, 0) * gap;
+    const sheet = cv(cw, ch);
+    const g = cx(sheet);
+    if (!trans) { g.fillStyle = '#ffffff'; g.fillRect(0, 0, cw, ch); }
+    for (let i = 0; i < cnt; i++) {
+      const col = i % cols, row = Math.floor(i / cols);
+      const x = col * (fw + gap), y = row * (fh + gap);
+      const src = sf[i].canvas;
+      if (fs > 0) { const t = cv(fw, fh); cx(t).drawImage(src, 0, 0, fw, fh); g.drawImage(t, x, y); }
+      else g.drawImage(src, x, y);
+    }
+    const blob = await tb(sheet);
+    if (S.su) URL.revokeObjectURL(S.su);
+    S.su = URL.createObjectURL(blob);
+    S.sb = blob;
+
+    $('resultSection').classList.remove('hidden');
+    $('exportSection').classList.remove('hidden');
+    $('resultImg').src = S.su;
+    $('resultImg').style.display = '';
+    $('resultEmpty').style.display = 'none';
+    $('expSizeLabel').textContent = `${cw} × ${ch}`;
+
+    // Mini preview
+    const mi = $('expCols').parentElement.nextElementSibling.querySelector('.meta strong');
+    // Setup anim preview
+    setupAnim(sf);
+
+    toast('序列图已生成', 'ok');
+  } catch (e) { toast('生成失败: ' + e.message, 'error'); }
+  S.ig = false;
+}
+
+// ── Animation preview ──
+let _animTimer = null, _animCur = 0, _animFrames = [];
+function setupAnim(frames) {
+  _animFrames = frames;
+  _animCur = 0;
+  if (_animTimer) { clearInterval(_animTimer); _animTimer = null; }
+  const ac = $('animCanvas');
+  if (frames.length) { ac.width = frames[0].canvas.width; ac.height = frames[0].canvas.height; }
+  drawAnimFrame(0);
+}
+function drawAnimFrame(idx) {
+  const f = _animFrames[idx];
+  if (!f) return;
+  const ac = $('animCanvas');
+  ac.width = f.canvas.width; ac.height = f.canvas.height;
+  cx(ac).drawImage(f.canvas, 0, 0);
+  _animCur = idx;
+  $('animLabel').textContent = `${idx + 1}/${_animFrames.length}`;
+}
+let _animPlaying = false;
+function animPlay() {
+  if (_animPlaying) { clearInterval(_animTimer); _animTimer = null; _animPlaying = false; return; }
+  _animPlaying = true;
+  _animTimer = setInterval(() => { _animCur = (_animCur + 1) % _animFrames.length; drawAnimFrame(_animCur); }, 1000 / (S.fps || 10));
+}
+function animReset() { if (_animTimer) { clearInterval(_animTimer); _animTimer = null; } _animPlaying = false; drawAnimFrame(0); }
+
+function showResultTab(t) {
+  document.querySelectorAll('#resultSection .btn-ghost').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  $('sheetTab').classList.toggle('hidden', t !== 'sheet');
+  $('animTab').classList.toggle('hidden', t !== 'anim');
+}
+
+// ── Exports ──
+$('expCols').oninput = function() { S.ec = Math.max(1, parseInt(this.value) || 1); };
+$('expGap').oninput = function() { S.eg = Math.max(0, parseInt(this.value) || 0); };
+$('expSize').onchange = function() { S.es = parseInt(this.value); };
+
+function getExportFrames() {
+  const trans = !!S.cs;
+  return trans ? (S.pf.length ? S.pf : S.frames) : S.frames;
+}
+function buildSheet(sf) {
+  const cols = S.ec, gap = S.eg, fs = S.es;
+  const cnt = sf.length, rows = Math.ceil(cnt / cols);
+  let fw = sf[0].canvas.width, fh = sf[0].canvas.height;
+  if (fs > 0) { fw = fs; fh = fs; }
+  const cw = cols * fw + Math.max(cols - 1, 0) * gap;
+  const ch = rows * fh + Math.max(rows - 1, 0) * gap;
+  const sheet = cv(cw, ch);
+  const g = cx(sheet);
+  const trans = !!S.cs;
+  if (!trans) { g.fillStyle = '#ffffff'; g.fillRect(0, 0, cw, ch); }
+  for (let i = 0; i < cnt; i++) {
+    const col = i % cols, row = Math.floor(i / cols);
+    const x = col * (fw + gap), y = row * (fh + gap);
+    const src = sf[i].canvas;
+    if (fs > 0) { const t = cv(fw, fh); cx(t).drawImage(src, 0, 0, fw, fh); g.drawImage(t, x, y); }
+    else g.drawImage(src, x, y);
+  }
+  return sheet;
+}
+
+async function exportPNG() {
+  const sf = getExportFrames();
+  if (!sf.length) { toast('无帧', 'error'); return; }
+  const sheet = buildSheet(sf);
+  const blob = await tb(sheet);
+  const name = (S.vidFile ? S.vidFile.name.replace(/\.[^.]+$/, '') : 'sheet') + (S.cs ? '-t' : '') + '.png';
+  dl(blob, name);
+  toast('PNG 已下载', 'ok');
+}
+
+async function exportGIF() {
+  const sf = getExportFrames();
+  if (!sf.length) { toast('无帧', 'error'); return; }
+  if (S.ig) return;
+  S.ig = true;
+  toast('编码 GIF...');
+  try {
+    const cvs = sf.map(f => f.canvas);
+    const w = cvs[0].width, h = cvs[0].height, delay = Math.round(100 / S.fps);
+    const trans = !!S.cs;
+    const gif = [];
+    function pb(b) { gif.push(b & 0xFF); }
+    function ps(v) { pb(v); pb(v >> 8); }
+    function pst(s) { for (let i = 0; i < s.length; i++) pb(s.charCodeAt(i)); }
+    // Palette
+    const colors = new Map();
+    const step = Math.max(1, ~~(Math.sqrt(w * h / 300)));
+    let ht = false;
+    for (const cv of cvs) {
+      const d = id(cv).data;
+      for (let i = 0; i < d.length; i += 4 * step) {
+        if (d[i + 3] < 128) { ht = true; continue; }
+        const k = (~~(d[i] / 16) << 8) | (~~(d[i + 1] / 16) << 4) | ~~(d[i + 2] / 16);
+        colors.set(k, (colors.get(k) || 0) + 1);
+      }
+    }
+    const sorted = [...colors.entries()].sort((a, b) => b[1] - a[1]);
+    const maxC = 256 - (ht ? 1 : 0);
+    const pal = [];
+    const ti = ht ? 0 : -1;
+    if (ht) pal.push(0, 0, 0);
+    for (let i = 0; i < Math.min(sorted.length, maxC); i++) { const k = sorted[i][0]; pal.push(((k >> 8) & 0xF) * 17, ((k >> 4) & 0xF) * 17, (k & 0xF) * 17); }
+    while (pal.length < 768) pal.push(0);
+
+    function quant(d, at) {
+      const px = new Uint8Array(w * h);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        if (ht && d[i + 3] < at) { px[y * w + x] = ti; continue; }
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        let bi = 0, bd = Infinity;
+        for (let j = 0; j < maxC; j++) {
+          const pr = pal[j * 3], pg = pal[j * 3 + 1], pb = pal[j * 3 + 2];
+          const dr = r - pr, dg = g - pg, db = b - pb, dist = dr * dr + dg * dg + db * db;
+          if (dist < bd) { bd = dist; bi = j + (ht ? 1 : 0); }
+        }
+        px[y * w + x] = bi;
+      }
+      return px;
+    }
+    function lzw(inp, mcs) {
+      const cc = 1 << mcs, eoc = cc + 1;
+      let cs = mcs + 1, nc = eoc + 1;
+      const dict = {};
+      for (let i = 0; i < (1 << mcs); i++) dict[String.fromCharCode(i)] = i;
+      let s = String.fromCharCode(inp[0]);
+      const res = [cc];
+      let bb = 0, bc = 0;
+      function oc(code) { bb |= code << bc; bc += cs; while (bc >= 8) { res.push(bb & 0xFF); bb >>= 8; bc -= 8; } }
+      for (let i = 1; i < inp.length; i++) {
+        const c = String.fromCharCode(inp[i]), sc = s + c;
+        if (dict[sc] !== undefined) s = sc;
+        else {
+          oc(dict[s]);
+          if (nc < 4096) { dict[sc] = nc++; cs = Math.min(12, Math.ceil(Math.log2(nc))); } else {
+            oc(cc); for (let k = 0; k < (1 << mcs); k++) dict[String.fromCharCode(k)] = k; nc = eoc + 1; cs = mcs + 1;
+          }
+          s = c;
+        }
+      }
+      oc(dict[s]); oc(eoc);
+      if (bc > 0) res.push(bb & 0xFF);
+      return new Uint8Array(res);
+    }
+    pst('GIF89a'); ps(w); ps(h);
+    pb(0x80 | (Math.ceil(Math.log2(256)) - 1)); pb(0); pb(0);
+    for (let i = 0; i < 768; i++) pb(pal[i]);
+    pb(0x21); pb(0xFF); pb(0x0B); pst('NETSCAPE2.0'); pb(0x03); pb(0x01); ps(0); pb(0x00);
+    for (const cv of cvs) {
+      const d = id(cv).data, px = quant(d, 128);
+      pb(0x21); pb(0xF9); pb(0x04); pb(ht ? 0x05 : 0x04); ps(delay); pb(ht ? 0 : 0); pb(0x00);
+      pb(0x2C); ps(0); ps(0); ps(w); ps(h); pb(0x00);
+      pb(Math.max(2, Math.ceil(Math.log2(256))));
+      const lz = lzw(px, Math.max(2, Math.ceil(Math.log2(256))));
+      for (let i = 0; i < lz.length; i += 255) { const ch = lz.subarray(i, i + 255); pb(ch.length); for (let j = 0; j < ch.length; j++) pb(ch[j]); }
+      pb(0x00);
+    }
+    pb(0x3B);
+    const blob = new Blob([new Uint8Array(gif)], { type: 'image/gif' });
+    const name = (S.vidFile ? S.vidFile.name.replace(/\.[^.]+$/, '') : 'anim') + (trans ? '-t' : '') + '.gif';
+    dl(blob, name);
+    toast('GIF 已下载', 'ok');
+  } catch (e) { toast('GIF 失败: ' + e.message, 'error'); }
+  S.ig = false;
+}
+
+async function exportZIP() {
+  if (!S.frames.length) { toast('无帧', 'error'); return; }
+  if (!S.cs) { toast('请先启用抠像', 'error'); return; }
+  if (S.ig) return;
+  S.ig = true;
+  toast('打包 ZIP...');
+  try {
+    const sf = S.pf.length ? S.pf : S.frames;
+    const JSZip = window.JSZip;
+    const zip = new JSZip();
+    const name = (S.vidFile ? S.vidFile.name.replace(/\.[^.]+$/, '') : 'frames');
+    for (let i = 0; i < sf.length; i++) {
+      const blob = await tb(sf[i].canvas);
+      zip.file(`${name}-${String(i + 1).padStart(3, '0')}.png`, blob);
+    }
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', level: 6 });
+    dl(blob, `${name}.zip`);
+    toast('ZIP 已下载', 'ok');
+  } catch (e) { toast('ZIP 失败: ' + e.message, 'error'); }
+  S.ig = false;
+}
+
+// ── Spine ──
+let _spineTimer = null, _spineCur = 0, _spineFrames = [];
+function openSpine() {
+  const sf = getExportFrames();
+  if (!sf.length) { toast('请先生成序列图', 'error'); return; }
+  $('spineSection').classList.remove('hidden');
+  _spineFrames = sf;
+  _spineCur = 0;
+  const ac = $('spineCanvas');
+  ac.width = sf[0].canvas.width; ac.height = sf[0].canvas.height;
+  spineDraw(0);
+  toast('Spine 工作区已打开', 'ok');
+}
+function spineDraw(idx) {
+  const f = _spineFrames[idx];
+  if (!f) return;
+  const ac = $('spineCanvas');
+  ac.width = f.canvas.width; ac.height = f.canvas.height;
+  cx(ac).drawImage(f.canvas, 0, 0);
+  _spineCur = idx;
+  $('spineLabel').textContent = `${idx + 1}/${_spineFrames.length}`;
+}
+let _spinePlaying = false;
+function spinePlay() {
+  if (_spinePlaying) { clearInterval(_spineTimer); _spineTimer = null; _spinePlaying = false; return; }
+  _spinePlaying = true;
+  const fps = parseInt($('spineFps').value) || 10;
+  const loop = S.sl;
+  _spineTimer = setInterval(() => {
+    _spineCur++;
+    if (_spineCur >= _spineFrames.length) {
+      if (loop) _spineCur = 0;
+      else { clearInterval(_spineTimer); _spineTimer = null; _spinePlaying = false; spineDraw(_spineFrames.length - 1); return; }
+    }
+    spineDraw(_spineCur);
+  }, 1000 / fps);
+}
+function spineReset() { if (_spineTimer) { clearInterval(_spineTimer); _spineTimer = null; } _spinePlaying = false; spineDraw(0); }
+function toggleSpineLoop() { S.sl = !S.sl; event.currentTarget.classList.toggle('on'); }
+
+async function exportSpine() {
+  if (S.ig) return;
+  S.ig = true;
+  toast('导出 Spine...');
+  try {
+    const sf = _spineFrames.length ? _spineFrames : getExportFrames();
+    if (!sf.length) throw new Error('无帧');
+    const params = { skeleton: $('spineSk').value || 'skeleton', anim: $('spineAn').value || 'idle', slot: $('spineSl').value || 'sprite', fps: parseInt($('spineFps').value) || 10 };
+    const first = sf[0].canvas;
+    const w = first.width, h = first.height;
+    const cvs = sf.map(f => f.canvas);
+    const name = (S.vidFile ? S.vidFile.name.replace(/\.[^.]+$/, '') : 'spine');
+    const JSZip = window.JSZip, zip = new JSZip(), imgs = zip.folder('images');
+    const att = {};
+    for (let i = 0; i < cvs.length; i++) {
+      const fn = `${name}-${String(i + 1).padStart(3, '0')}`;
+      att[fn] = { type: 'region', path: `images/${fn}.png`, x: 0, y: 0, width: w, height: h };
+    }
+    const anim = [];
+    for (let i = 1; i < cvs.length; i++) anim.push({ time: Number((i / params.fps).toFixed(4)), name: `${name}-${String(i + 1).padStart(3, '0')}` });
+    const json = {
+      skeleton: { name: params.skeleton, spine: '4.2.0', images: './images/' },
+      bones: [{ name: 'root' }],
+      slots: [{ name: params.slot, bone: 'root', attachment: `${name}-001` }],
+      skins: [{ name: 'default', attachments: { [params.slot]: att } }],
+      animations: { [params.anim]: { slots: { [params.slot]: { attachment: anim } } } }
+    };
+    zip.file(`${name}.json`, JSON.stringify(json, null, 2));
+    for (let i = 0; i < cvs.length; i++) { const blob = await tb(cvs[i]); imgs.file(`${name}-${String(i + 1).padStart(3, '0')}.png`, blob); }
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', level: 6 });
+    dl(blob, `${name}-spine.zip`);
+    toast('Spine 已下载', 'ok');
+  } catch (e) { toast('Spine 失败: ' + e.message, 'error'); }
+  S.ig = false;
+}
+
+// ── Cutout mode ──
+const imgZone = $('imgZone'), imgIn = $('imgInput');
+imgZone.onclick = () => imgIn.click();
+imgZone.ondragover = e => { e.preventDefault(); imgZone.classList.add('dragover'); };
+imgZone.ondragleave = () => imgZone.classList.remove('dragover');
+imgZone.ondrop = e => { e.preventDefault(); imgZone.classList.remove('dragover'); if (e.dataTransfer.files.length) { const f = e.dataTransfer.files[0]; if (f.type.startsWith('image/')) loadImage(f); else toast('请选择图片', 'error'); } };
+imgIn.onchange = e => { if (e.target.files.length) { const f = e.target.files[0]; if (f.type.startsWith('image/')) loadImage(f); } };
+
+async function loadImage(file) {
+  toast('加载图片...');
+  try {
+    const url = URL.createObjectURL(file);
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const c = cv(img.naturalWidth, img.naturalHeight);
+    cx(c).drawImage(img, 0, 0);
+    if (S.imgUrl) URL.revokeObjectURL(S.imgUrl);
+    S.imgCv = c;
+    S.imgUrl = url;
+    S.cs = null;
+    $('cutEditor').classList.remove('hidden');
+    $('cutResult').classList.add('hidden');
+    const sc = $('cutSrc');
+    sc.width = c.width; sc.height = c.height;
+    cx(sc).drawImage(c, 0, 0);
+    const dc = $('cutDst');
+    dc.width = c.width; dc.height = c.height;
+    cx(dc).drawImage(c, 0, 0);
+    $('cutSwatch').style.background = '#3a3a44';
+    $('cutLabel').textContent = '未取色';
+    toast('图片已加载，点击背景取色', 'ok');
+  } catch (e) { toast('图片加载失败', 'error'); }
+}
+
+$('cutSrc').onclick = function(e) {
+  const r = this.getBoundingClientRect();
+  const x = Math.round((e.clientX - r.left) * (this.width / r.width));
+  const y = Math.round((e.clientY - r.top) * (this.height / r.height));
+  const d = cx(this).getImageData(x, y, 1, 1).data;
+  S.cs = { r: d[0], g: d[1], b: d[2] };
+  $('cutSwatch').style.background = hex(d[0], d[1], d[2]);
+  $('cutLabel').textContent = `RGB(${d[0]}, ${d[1]}, ${d[2]})`;
+  applyCut();
+};
+$('cutTol').oninput = function() { $('cutTolV').textContent = this.value; applyCut(); };
+$('cutSoft').oninput = function() { $('cutSoftV').textContent = this.value; applyCut(); };
+function cutToggleSmooth() { S.csm = !S.csm; event.currentTarget.classList.toggle('on'); applyCut(); }
+function cutToggleDespill() { S.cd = !S.cd; event.currentTarget.classList.toggle('on'); applyCut(); }
+function setCutView(v) { S.cv = v; applyCut(); }
+function applyCut() {
+  const src = S.imgCv, dst = $('cutDst');
+  if (!src) return;
+  if (!S.cs) { dst.width = src.width; dst.height = src.height; cx(dst).drawImage(src, 0, 0); return; }
+  const { result, mask } = chromaKey(src, S.cs, parseInt($('cutTol').value), parseInt($('cutSoft').value), S.cd, 50);
+  if (S.cv === 'mask') { dst.width = mask.width; dst.height = mask.height; cx(dst).drawImage(mask, 0, 0); }
+  else if (S.cv === 'solid') {
+    const bg = cv(result.width, result.height);
+    cx(bg).fillStyle = '#1a1a1e';
+    cx(bg).fillRect(0, 0, bg.width, bg.height);
+    cx(bg).drawImage(result, 0, 0);
+    dst.width = bg.width; dst.height = bg.height;
+    cx(dst).drawImage(bg, 0, 0);
+  } else { dst.width = result.width; dst.height = result.height; cx(dst).drawImage(result, 0, 0); }
+}
+
+async function generateCutout() {
+  if (!S.imgCv || !S.cs) { toast('请先取色', 'error'); return; }
+  if (S.ig) return;
+  S.ig = true;
+  toast('生成透明 PNG...');
+  try {
+    const { result } = chromaKey(S.imgCv, S.cs, parseInt($('cutTol').value), parseInt($('cutSoft').value), S.cd, 50);
+    const blob = await tb(result);
+    if (S.cutUrl) URL.revokeObjectURL(S.cutUrl);
+    S.cutUrl = URL.createObjectURL(blob);
+    $('cutResult').classList.remove('hidden');
+    $('cutPreview').src = S.cutUrl;
+    $('cutPreview').style.display = '';
+    toast('抠图成功', 'ok');
+  } catch (e) { toast('生成失败', 'error'); }
+  S.ig = false;
+}
+function downloadCutout() {
+  if (!S.cutUrl) { toast('请先生成', 'error'); return; }
+  const name = (S.imgUrl ? S.imgUrl.split('/').pop().replace(/\.[^.]+$/, '') : 'cutout') + '-cutout.png';
+  const a = document.createElement('a');
+  a.href = S.cutUrl;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  toast('已下载', 'ok');
+}
+
+// ── Init ──
+toast('欢迎使用帧工坊', 'ok');
+updateFrameCount();
+updateSegUI();
+</script>
+</body>
+</html>
